@@ -135,21 +135,21 @@ void modify_hue(png_bytep h_image,
     // sao uma "dica" do que deve ser feito em cada chamada a funcoes CUDA
 
     double *d_A;
-    cudaMalloc((void **)&d_A, sizeof(double) * 9)
+    cudaMalloc((void **)&d_A, sizeof(double) * 9);
     // cudaMalloc(...);
     checkErrors(cudaGetLastError(), "Alocacao da matriz A no device");
 
-    cudaMemcpy(d_A, A, sizeof(double) * 9, cudaMemcpyHostToDevice)
+    cudaMemcpy(d_A, A, sizeof(double) * 9, cudaMemcpyHostToDevice);
     // cudaMemcpy(...);
     checkErrors(cudaGetLastError(), "Copia da matriz A para o device");
 
     png_bytep d_image;
     size_t d_image_size = image_size;
-    cudaMalloc((void **)&d_image, d_image_size)
+    cudaMalloc((void **)&d_image, d_image_size);
     // cudaMalloc(...);
     checkErrors(cudaGetLastError(), "Alocacao da imagem no device");
 
-    cudaMemcpy(d_image, h_image, d_image_size, cudaMemcpyHostToDevice)
+    cudaMemcpy(d_image, h_image, d_image_size, cudaMemcpyHostToDevice);
     // cudaMemcpy(...);
     checkErrors(cudaGetLastError(), "Copia da imagem para o device");
 
@@ -164,7 +164,7 @@ void modify_hue(png_bytep h_image,
     //     (...);
     checkErrors(cudaGetLastError(), "Lançamento do kernel");
 
-    cudaMemcpy(h_image, d_image, d_image_size, cudaMemcpyDeviceToHost)
+    cudaMemcpy(h_image, d_image, d_image_size, cudaMemcpyDeviceToHost);
     // cudaMemcpy(...);
     checkErrors(cudaGetLastError(), "Copia da imagem para o host");
 
@@ -337,10 +337,10 @@ int main(int argc, char *argv[]) {
     // Processamento da imagem (alteracao do hue)
 
     // Versao sequencial:
-    modify_hue_seq(image, width, height, hue_diff);
+    //modify_hue_seq(image, width, height, hue_diff);
 
-    // // Versao paralela
-    // modify_hue(image, width, height, image_size, hue_diff);
+    // Versao paralela
+    modify_hue(image, width, height, image_size, hue_diff);
 
     // Escrita da imagem para arquivo
     write_png_image(argv[2], image, width, height);
