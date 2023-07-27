@@ -72,6 +72,32 @@ __global__ void modify_hue_kernel(png_bytep d_image,
                                   int height,
                                   double *A) {
     // SEU CODIGO DO EP3 AQUI
+    // Obtém os índices globais do pixel que essa thread está processando
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+
+    // Verifica se o índice está dentro dos limites da imagem
+    if (row >= height || col >= width) return;
+
+    // Calcula o índice global da matriz A que corresponde à transformação para a matiz (hue) desse pixel
+    int a_index = 3 * (col % 3) + (row % 3);
+
+    // Aplica a matriz de transformação A ao pixel
+    double r = d_image[row * width * 3 + col * 3 + 0] / 255.0;
+    double g = d_image[row * width * 3 + col * 3 + 1] / 255.0;
+    double b = d_image[row * width * 3 + col * 3 + 2] / 255.0;
+
+    double new_r = A[a_index] * r + A[a_index + 1] * g + A[a_index + 2] * b;
+    double new_g = A[a_index + 3] * r + A[a_index + 4] * g + A[a_index + 5] * b;
+    double new_b = A[a_index + 6] * r + A[a_index + 7] * g + A[a_index + 8] * b;
+
+    new_r = fmin(fmax(new_r, 0.0), 1.0);
+    new_g = fmin(fmax(new_g, 0.0), 1.0);
+    new_b = fmin(fmax(new_b, 0.0), 1.0);
+
+    d_image[row * width * 3 + col * 3 + 0] = (png_byte)round(new_r * 255.0);
+    d_image[row * width * 3 + col * 3 + 1] = (png_byte)round(new_g * 255.0);
+    d_image[row * width * 3 + col * 3 + 2] = (png_byte)round(new_b * 255.0);
 }
 
 // Altera a matiz (hue) de uma imagem em paralelo
@@ -82,6 +108,24 @@ void modify_hue(png_bytep h_image,
                 size_t image_size,
                 double hue_diff) {
     // SEU CODIGO DO EP3 AQUI
+    double c = cos(2 * M_PI * hue_diff);
+    double s = sin(2 * M_PI * hue_diff);
+    double one_third = 1.0 / 3.0;
+    double sqrt_third = sqrt(one_third);
+
+    // Matriz A compoe as operacoes de
+    // conversao de RGB para HSV, mudanca de hue,
+    // e conversao de HSV de volta para RGB
+    // (new_r, new_g, new_b)' = A * (r, g, b)'
+    // https://stackoverflow.com/questions/8507885/shift-hue-of-an-rgb-color
+
+    double a11 = c + one_third * (1.0 - c);
+    double a12 = one_third * (1.0 - c) - sqrt_third * s;
+    double a13 = one_third * (1.0 - c) + sqrt_third * s;
+    double a21 = a13; double a22 = a11; double a23 = a12;
+    double a31 = a12; double a32 = a13; double a33 = a11;
+
+    double A[9] = {a11, a12, a13, a21, a22, a23, a31, a32, a33};
 
     // Voce deve completar os ... com os argumentos corretos e
     // indicar dimensoes apropriadas para o grid e os blocos
@@ -90,29 +134,42 @@ void modify_hue(png_bytep h_image,
     // As mensagens nas chamadas de checkErrors, usadas pra debug,
     // sao uma "dica" do que deve ser feito em cada chamada a funcoes CUDA
 
+    double *d_A;
+    cudaMalloc((void **)&d_A, sizeof(double) * 9)
     // cudaMalloc(...);
-    // checkErrors(cudaGetLastError(), "Alocacao da matriz A no device");
+    checkErrors(cudaGetLastError(), "Alocacao da matriz A no device");
 
+    cudaMemcpy(d_A, A, sizeof(double) * 9, cudaMemcpyHostToDevice)
     // cudaMemcpy(...);
-    // checkErrors(cudaGetLastError(), "Copia da matriz A para o device");
+    checkErrors(cudaGetLastError(), "Copia da matriz A para o device");
 
+    png_bytep d_image;
+    size_t d_image_size = image_size;
+    cudaMalloc((void **)&d_image, d_image_size)
     // cudaMalloc(...);
-    // checkErrors(cudaGetLastError(), "Alocacao da imagem no device");
+    checkErrors(cudaGetLastError(), "Alocacao da imagem no device");
 
+    cudaMemcpy(d_image, h_image, d_image_size, cudaMemcpyHostToDevice)
     // cudaMemcpy(...);
-    // checkErrors(cudaGetLastError(), "Copia da imagem para o device");
+    checkErrors(cudaGetLastError(), "Copia da imagem para o device");
 
-    // // Determinar as dimensoes adequadas aqui
+    // Determinar as dimensoes adequadas aqui
+    dim3 dim_block(16, 16);
+    dim3 dim_grid((width + dim_block.x - 1) / dim_block.x, (height + dim_block.y - 1) / dim_block.y);
     // dim3 dim_block(1, 1);
     // dim3 dim_grid(1, 1);
 
+    modify_hue_kernel<<<dim_grid, dim_block>>>(d_image, width, height, d_A);
     // modify_hue_kernel<<<dim_grid, dim_block>>>
     //     (...);
-    // checkErrors(cudaGetLastError(), "Lançamento do kernel");
+    checkErrors(cudaGetLastError(), "Lançamento do kernel");
 
+    cudaMemcpy(h_image, d_image, d_image_size, cudaMemcpyDeviceToHost)
     // cudaMemcpy(...);
-    // checkErrors(cudaGetLastError(), "Copia da imagem para o host");
+    checkErrors(cudaGetLastError(), "Copia da imagem para o host");
 
+    cudaFree(d_A);
+    cudaFree(d_image);
     // cudaFree(...);
     // cudaFree(...);
 }
