@@ -75,14 +75,11 @@ __global__ void modify_hue_kernel(png_bytep d_image,
                                   int height,
                                   double *A) {
     // SEU CODIGO DO EP3 AQUI
-    // Obtém os índices globais do pixel que essa thread está processando
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;
 
-    // Verifica se o índice está dentro dos limites da imagem
     if (row >= height || col >= width) return;
 
-    // Aplica a matriz de transformação A ao pixel
     double r = d_image[row * width * 3 + col * 3 + 0] / 255.0;
     double g = d_image[row * width * 3 + col * 3 + 1] / 255.0;
     double b = d_image[row * width * 3 + col * 3 + 2] / 255.0;
@@ -136,42 +133,31 @@ void modify_hue(png_bytep h_image,
 
     double *d_A;
     cudaMalloc((void **)&d_A, sizeof(double) * 9);
-    // cudaMalloc(...);
     checkErrors(cudaGetLastError(), "Alocacao da matriz A no device");
 
     cudaMemcpy(d_A, A, sizeof(double) * 9, cudaMemcpyHostToDevice);
-    // cudaMemcpy(...);
     checkErrors(cudaGetLastError(), "Copia da matriz A para o device");
 
     png_bytep d_image;
     size_t d_image_size = image_size;
     cudaMalloc((void **)&d_image, d_image_size);
-    // cudaMalloc(...);
     checkErrors(cudaGetLastError(), "Alocacao da imagem no device");
 
     cudaMemcpy(d_image, h_image, d_image_size, cudaMemcpyHostToDevice);
-    // cudaMemcpy(...);
     checkErrors(cudaGetLastError(), "Copia da imagem para o device");
 
     // Determinar as dimensoes adequadas aqui
     dim3 dim_block(16, 16);
     dim3 dim_grid((width + dim_block.x - 1) / dim_block.x, (height + dim_block.y - 1) / dim_block.y);
-    // dim3 dim_block(1, 1);
-    // dim3 dim_grid(1, 1);
 
     modify_hue_kernel<<<dim_grid, dim_block>>>(d_image, width, height, d_A);
-    // modify_hue_kernel<<<dim_grid, dim_block>>>
-    //     (...);
     checkErrors(cudaGetLastError(), "Lançamento do kernel");
 
     cudaMemcpy(h_image, d_image, d_image_size, cudaMemcpyDeviceToHost);
-    // cudaMemcpy(...);
     checkErrors(cudaGetLastError(), "Copia da imagem para o host");
 
     cudaFree(d_A);
     cudaFree(d_image);
-    // cudaFree(...);
-    // cudaFree(...);
 }
 
 // Le imagem png de um arquivo de entrada para a memoria
