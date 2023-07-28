@@ -1,6 +1,8 @@
+// EP3 MAC0219 
 //Kaique Nunes de Oliveira 12542244
 //André Nogueira Ribeiro   12542230
-//Bruno Pereira Campos
+//Bruno Pereira Campos     11806764
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
