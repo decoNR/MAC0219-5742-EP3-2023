@@ -1,3 +1,6 @@
+//Kaique Nunes de Oliveira 12542244
+//André Nogueira Ribeiro   12542230
+//Bruno Pereira Campos
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -87,9 +90,9 @@ __global__ void modify_hue_kernel(png_bytep d_image,
     double g = d_image[row * width * 3 + col * 3 + 1] / 255.0;
     double b = d_image[row * width * 3 + col * 3 + 2] / 255.0;
 
-    double new_r = A[a_index] * r + A[a_index + 1] * g + A[a_index + 2] * b;
-    double new_g = A[a_index + 3] * r + A[a_index + 4] * g + A[a_index + 5] * b;
-    double new_b = A[a_index + 6] * r + A[a_index + 7] * g + A[a_index + 8] * b;
+    double new_r = A[0] * r + A[1] * g + A[2] * b;
+    double new_g = A[3] * r + A[4] * g + A[5] * b;
+    double new_b = A[6] * r + A[7] * g + A[8] * b;
 
     new_r = fmin(fmax(new_r, 0.0), 1.0);
     new_g = fmin(fmax(new_g, 0.0), 1.0);
