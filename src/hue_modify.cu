@@ -82,9 +82,6 @@ __global__ void modify_hue_kernel(png_bytep d_image,
     // Verifica se o índice está dentro dos limites da imagem
     if (row >= height || col >= width) return;
 
-    // Calcula o índice global da matriz A que corresponde à transformação para a matiz (hue) desse pixel
-    int a_index = 3 * (col % 3) + (row % 3);
-
     // Aplica a matriz de transformação A ao pixel
     double r = d_image[row * width * 3 + col * 3 + 0] / 255.0;
     double g = d_image[row * width * 3 + col * 3 + 1] / 255.0;
